@@ -8,35 +8,33 @@ const anthropicClient = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-// Helper: fetch website content via BrightData Unlocker
+// Helper: fetch website content via BrightData Web Unlocker API
 async function fetchWebsiteContent(url: string): Promise<string> {
   const apiKey = process.env.BRIGHTDATA_API_KEY;
-  const zone = process.env.BRIGHTDATA_ZONE;
 
-  if (!apiKey || !zone) {
-    throw new Error('BrightData API credentials not configured');
+  if (!apiKey) {
+    throw new Error('BrightData API key not configured');
   }
 
-  const payload = {
-    zone: zone,
-    url: url,
-    format: 'raw'
-  };
-
-  const res = await fetch('https://api.brightdata.com/request', {
+  const response = await fetch('https://api.brightdata.com/request', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      url: url,
+      format: 'raw'
+    })
   });
 
-  if (!res.ok) {
-    throw new Error(`BrightData request failed with status ${res.status}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`BrightData request failed with status ${response.status}: ${errorText}`);
   }
 
-  const html = await res.text();
+  const html = await response.text();
+  console.log(`BrightData Web Unlocker completed successfully`);
   return html;
 }
 
@@ -92,22 +90,40 @@ function buildClaudePrompt(contentTranscript: string, style: string) {
       styleHint = 'Explain in a clear and engaging manner.';
   }
 
-  const systemPrompt = `You are an analogy-focused reasoning agent. Convert the input content into a minimal visual storyboard using analogies.
-Each frame should be a cartoon-like scene that represents part of the content's logic, accompanied by an explanation in natural language.
+  const systemPrompt = `You are a tutorial creator that transforms content into engaging, conversational stories using visual analogies.
 
-IMPORTANT: Only output a valid JSON object where each key is a step (step1, step2, step3, etc.) and each value is a string describing the scene and the explanation.
-Make the number of steps as small as possible (typically 3-7 frames) but sufficient to cover the key flow or data movement in the content.
+Your goal is to create a TUTORIAL that teaches the user step-by-step, NOT just describe images.
+
+Each frame should:
+1. Tell a story that flows naturally from the previous frame
+2. Use conversational language that directly addresses the learner
+3. Explain concepts through relatable analogies
+4. Focus on TEACHING and UNDERSTANDING, not just describing visuals
+5. BE CONCISE - Keep each frame to 2-3 sentences maximum
+
+IMPORTANT: Only output a valid JSON object where each key is a step (step1, step2, step3, etc.) and each value contains:
+- A SHORT conversational tutorial explanation (2-3 sentences max)
+- A brief visual scene description to illustrate it (but NO text/labels in the scene)
+
+Use the MINIMUM number of steps needed (typically 5-7 frames). Make it flow like a story.
+
+CRITICAL RULES:
+1. Write in a conversational, tutorial style: "Let's start by...", "Now...", "Here's how..."
+2. KEEP IT SHORT - Maximum 2-3 sentences per frame
+3. NEVER mention text, labels, signs, or written words in the visual descriptions
+4. Make each frame build on the previous one - create a narrative flow
+5. Focus on teaching and understanding, not just listing features
 
 Example output format:
 {
-  "step1": "A house with two windows representing the main application entry point",
-  "step2": "A delivery truck carrying packages representing data being processed",
-  "step3": "A warehouse storing boxes representing the database"
+  "step1": "Let's start with the basics. When you first open the application, it's like entering a house - the front door is your entry point. Picture a cozy house with a welcoming entrance.",
+  "step2": "Now you need to send information somewhere. Think of it like a delivery truck picking up packages. Visualize a friendly delivery truck loading colorful boxes.",
+  "step3": "Finally, all that information gets stored safely in a warehouse. Your data sits here until you need it again. Imagine a large warehouse with neatly stacked boxes."
 }
 
 Do not include any text before or after the JSON object. Only return valid JSON.`;
 
-  const userPrompt = `Content to explain:\n"""${contentTranscript.substring(0, 8000)}"""\n\nStyle requirement: ${styleHint}\n\nNow produce the storyboard JSON with 3-7 steps maximum.`;
+  const userPrompt = `Content to explain:\n"""${contentTranscript.substring(0, 8000)}"""\n\nStyle requirement: ${styleHint}\n\nCreate a conversational tutorial that teaches this content step-by-step. Use 5-8 frames that flow together as a story. Make it engaging and easy to understand. Each frame should teach something new while building on what came before.`;
 
   return { systemPrompt, userPrompt };
 }

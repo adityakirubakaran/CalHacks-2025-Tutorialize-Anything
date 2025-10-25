@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { GoogleGenAI } from '@google/genai';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSession, updateFrame } from '@/lib/session-storage';
 
@@ -12,9 +11,8 @@ const s3Client = new S3Client({
 });
 
 const bucketName = process.env.AWS_S3_BUCKET || '';
-const genAI = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || '',
-});
+// Pollinations.ai - Free image generation, no API key needed
+const POLLINATIONS_API = 'https://image.pollinations.ai/prompt';
 
 export default async function handler(
   req: NextApiRequest,
@@ -49,12 +47,28 @@ export default async function handler(
       });
     }
 
+    // Build context for sequential storytelling
+    const allDescriptions = frameKeys.map(k => storyboard[k]).join(' -> ');
+    const storyContext = `This is part of a sequential story about: ${allDescriptions.substring(0, 200)}`;
+
     for (let i = 0; i < frameKeys.length; i++) {
       const key = frameKeys[i];
       const description = storyboard[key];
 
-      // Create a prompt optimized for cartoon-style image generation
-      const prompt = `Cartoon illustration, simple colorful style: ${description}`;
+      // Extract just the visual description part (after "Picture", "Visualize", "Imagine", etc.)
+      // This helps separate the tutorial text from the visual description
+      const visualMatch = description.match(/(?:picture|visualize|imagine|see|shows?|depicts?)[:\s]+([^.]+)/i);
+      const visualDescription = visualMatch ? visualMatch[1] : description;
+      
+      // Build sequential context for visual continuity
+      const previousContext = i > 0 ? `Continuing the story, ` : '';
+      const sequenceInfo = `Frame ${i + 1} of ${frameKeys.length}. `;
+      
+      // Clean up any quoted text
+      const cleanDescription = visualDescription.replace(/['"][^'"]*['"]/g, '').trim();
+      
+      // Create a prompt that emphasizes visual storytelling without text
+      const prompt = `${sequenceInfo}${previousContext}Friendly cartoon illustration, warm colorful style, NO text NO words NO letters NO labels anywhere, consistent characters and art style: ${cleanDescription}`;
 
       console.log(`Generating image for ${key}: "${prompt}"`);
 
@@ -63,33 +77,36 @@ export default async function handler(
       // Try up to 3 retries for image generation
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          // Using Gemini SDK for image generation with free tier model
-          const response = await genAI.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-          });
+          // Using Pollinations.ai - Free, no API key needed
+          // URL format: https://image.pollinations.ai/prompt/{encoded_prompt}
+          // Using square 1024x1024 for proper composition
+          const encodedPrompt = encodeURIComponent(prompt);
+          // Maximum strength negative prompt - list everything text-related
+          const negativePrompt = encodeURIComponent('text, words, letters, labels, signs, writing, typography, captions, subtitles, titles, numbers, digits, symbols, alphabet, characters, fonts, readable text, written words, inscriptions, banners, posters, books with text, newspapers, screens with text, billboards, name tags, speech bubbles with text');
+          const imageUrl = `${POLLINATIONS_API}/${encodedPrompt}?width=1024&height=1024&seed=${Date.now()}&nologo=true&enhance=true&model=turbo&negative=${negativePrompt}`;
           
-          // Extract image from response
-          if (response.candidates && response.candidates.length > 0) {
-            const candidate = response.candidates[0];
-            if (candidate.content?.parts) {
-              for (const part of candidate.content.parts) {
-                if (part.inlineData?.data) {
-                  // Found base64 image data
-                  imageData = Buffer.from(part.inlineData.data, 'base64');
-                  console.log(`Successfully generated image for ${key}`);
-                  break;
-                }
-              }
-            }
+          console.log(`Calling Pollinations.ai API: ${imageUrl.substring(0, 100)}...`);
+          
+          const response = await fetch(imageUrl, {
+            method: 'GET',
+          });
+
+          console.log(`Response status: ${response.status}`);
+          console.log(`Response content-type: ${response.headers.get('content-type')}`);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Pollinations API error:`, errorText);
+            throw new Error(`Pollinations API error: ${response.status} - ${errorText}`);
           }
 
-          if (imageData) break;
-          
-          // If no image data found, log and retry
-          console.warn(`No image data in response for ${key}, attempt ${attempt + 1}`);
+          // Response is the image blob directly
+          const imageBlob = await response.arrayBuffer();
+          imageData = Buffer.from(imageBlob);
+          console.log(`Successfully generated image for ${key}, size: ${imageData.length} bytes`);
+          break;
         } catch (genErr: any) {
-          const isRateLimitError = genErr?.message?.includes('quota') || genErr?.message?.includes('RESOURCE_EXHAUSTED');
+          const isRateLimitError = genErr?.message?.includes('rate limit') || genErr?.message?.includes('429');
           
           console.error(`Image gen failed on attempt ${attempt + 1} for ${key}:`, genErr);
           
@@ -110,10 +127,10 @@ export default async function handler(
         }
       }
       
-      // Add delay between successful requests to avoid rate limiting
+      // Add small delay between successful requests
       if (imageData && i < frameKeys.length - 1) {
-        console.log('Waiting 3 seconds before next image generation to respect rate limits...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log('Waiting 1 second before next image generation...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       if (!imageData) {

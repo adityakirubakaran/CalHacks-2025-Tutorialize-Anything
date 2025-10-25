@@ -13,7 +13,7 @@ An innovative full-stack application that transforms any codebase or website int
 
 - **AI-Powered Analysis**: Uses Claude AI to analyze content and create minimal storyboard frames (3-7 frames typically)
 
-- **Visual Generation**: Generates cartoon-style images using Google Gemini Imagen API
+- **Visual Generation**: Generates cartoon-style images using Pollinations.ai (FREE, no API key needed!)
 
 - **Voice Narration**: Creates natural-sounding audio explanations using Fish.Audio TTS
 
@@ -31,7 +31,7 @@ API Routes (/api/*)
 External Services:
   - BrightData (Web scraping)
   - Anthropic Claude (AI reasoning)
-  - Google Gemini (Image generation)
+  - Pollinations.ai (Image generation - FREE)
   - Fish.Audio (Text-to-speech)
   - AWS S3 (Storage)
 ```
@@ -42,22 +42,19 @@ Before you begin, you'll need accounts and API keys for the following services:
 
 1. **BrightData** - For web scraping
    - Sign up at https://brightdata.com
-   - Create a Web Unlocker zone
-   - Get your API key and zone name
+   - Create a dataset or use an existing one
+   - Get your API key from: https://brightdata.com/cp/setting/users
+   - Get your dataset ID from your dataset settings
 
 2. **Anthropic Claude** - For AI reasoning
    - Sign up at https://console.anthropic.com
    - Create an API key
 
-3. **Google Gemini** - For image generation
-   - Sign up at https://ai.google.dev
-   - Create a Gemini API key from the Google AI Studio
-
-4. **Fish.Audio** - For text-to-speech
+3. **Fish.Audio** - For text-to-speech
    - Sign up at https://fish.audio
    - Create an API key
 
-5. **AWS S3** - For media storage
+4. **AWS S3** - For media storage
    - Create an S3 bucket
    - Create an IAM user with S3 write permissions
    - Get access key ID and secret access key
@@ -83,15 +80,14 @@ cp .env.example .env.local
 
 4. Edit `.env.local` with your actual API keys:
 ```env
-# BrightData Configuration
+# BrightData Configuration (Crawl API)
 BRIGHTDATA_API_KEY=your_brightdata_api_key
-BRIGHTDATA_ZONE=your_brightdata_zone_name
+BRIGHTDATA_DATASET_ID=your_dataset_id
 
 # Anthropic Claude Configuration
 ANTHROPIC_API_KEY=your_anthropic_api_key
 
-# Image Generation (Gemini)
-GEMINI_API_KEY=your_gemini_api_key
+# Image Generation (Pollinations.ai - FREE, no API key needed!)
 
 # Fish.Audio TTS Configuration
 FISHAUDIO_API_KEY=your_fishaudio_api_key
@@ -227,7 +223,7 @@ Generates a rephrased audio narration for a specific frame.
 
 - **BrightData**: Charges per request (check their pricing)
 - **Anthropic Claude**: Usage-based pricing per token
-- **Google Gemini**: Free tier available, then usage-based pricing
+- **Pollinations.ai**: Completely FREE, no API key required
 - **Fish.Audio**: May have free tier, then usage-based
 - **AWS S3**: Storage and bandwidth costs
 
@@ -294,6 +290,6 @@ For issues and questions:
 
 - Anthropic for Claude AI
 - BrightData for web scraping capabilities
-- Google for Gemini AI and Imagen image generation
+- Pollinations.ai for free Stable Diffusion image generation
 - Fish.Audio for text-to-speech services
 - The Next.js and React teams for excellent frameworks

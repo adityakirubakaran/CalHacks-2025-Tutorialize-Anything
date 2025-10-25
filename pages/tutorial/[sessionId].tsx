@@ -155,100 +155,72 @@ export default function TutorialViewer() {
   const isLast = currentIndex === frames.length - 1;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-white border-b">
-        <button
-          onClick={() => router.push('/')}
-          className="flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Input
-        </button>
-        
-        <div className="flex items-center space-x-4">
-          <div className="text-center">
-            <div className="text-sm text-gray-500">{sessionId?.toString().substring(0, 15) || 'Tutorial'}</div>
-            <div className="text-xs text-gray-400">Explained as: Tutorial</div>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-200 py-3 px-6">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <h1 className="text-xl font-light text-gray-900">Tutorial Maker</h1>
+          <div className="text-sm text-gray-500">
+            Frame <span className="font-medium text-gray-900">{currentIndex + 1}</span> of <span className="font-medium text-gray-900">{frames.length}</span>
           </div>
-          <button
-            onClick={handlePlayPause}
-            disabled={!currentFrame.audioUrl}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50"
-          >
-            {isPlaying ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
-            )}
-          </button>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-5xl">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+        <div className="w-full max-w-4xl h-full flex flex-col justify-center">
           {/* Content Card */}
-          <div className="relative bg-white rounded-lg border-4 border-blue-500 shadow-lg overflow-hidden">
-            {/* Frame Counter */}
-            <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded border border-gray-300 text-sm z-10">
-              Frame <span className="font-semibold">{currentIndex + 1}</span> of <span className="font-semibold">{frames.length}</span>
-            </div>
-
-            {/* Image Area */}
-            <div className="relative bg-gray-900 flex items-center justify-center" style={{ minHeight: '500px' }}>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Image Area - Optimized for no scroll */}
+            <div className="relative bg-gray-900 flex items-center justify-center w-full" style={{ height: '55vh', maxHeight: '450px' }}>
               {currentFrame.imageUrl ? (
                 <img
                   src={currentFrame.imageUrl}
                   alt={`Frame ${currentIndex + 1}`}
-                  className="max-w-full max-h-[500px] object-contain"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    console.error('Image failed to load:', currentFrame.imageUrl);
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : (
                 <div className="text-gray-500 text-center">
-                  <svg className="mx-auto h-16 w-16 text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-gray-400">Image unavailable</p>
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-700 animate-pulse"></div>
+                  <p className="text-gray-400 text-sm">Generating image...</p>
                 </div>
               )}
             </div>
 
-            {/* Text and Rephrase Button */}
-            <div className="relative p-6 bg-white">
-              <p className="text-gray-700 text-center text-lg leading-relaxed mb-4">
+            {/* Text Area - Compact */}
+            <div className="relative px-6 py-3 bg-white max-h-32 overflow-y-auto">
+              <p className="text-gray-700 text-center text-xs leading-relaxed max-w-2xl mx-auto pr-16">
                 {currentFrame.text}
               </p>
               
               <button
                 onClick={handleRephrase}
                 disabled={loadingFrame}
-                className="absolute bottom-4 left-4 flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                className="absolute top-2 right-3 flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-900 disabled:opacity-50 transition"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>{loadingFrame ? '⏳ Confusing? Rephrase' : '🤔 Confusing? Rephrase'}</span>
+                <span>{loadingFrame ? 'Rephrasing...' : 'Rephrase'}</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Hotbar */}
-      <div className="bg-white border-t py-6">
-        <div className="flex items-center justify-center space-x-4">
+      {/* Bottom Navigation */}
+      <div className="bg-white border-t border-gray-200 py-4">
+        <div className="flex items-center justify-center space-x-6 max-w-7xl mx-auto">
           <button
             onClick={() => setCurrentIndex(i => i - 1)}
             disabled={isFirst || loadingFrame}
-            className="w-12 h-12 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -256,14 +228,14 @@ export default function TutorialViewer() {
           <button
             onClick={handlePlayPause}
             disabled={!currentFrame.audioUrl || loadingFrame}
-            className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
+            className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {isPlaying ? (
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
               </svg>
             ) : (
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
@@ -272,9 +244,9 @@ export default function TutorialViewer() {
           <button
             onClick={() => setCurrentIndex(i => i + 1)}
             disabled={isLast || loadingFrame}
-            className="w-12 h-12 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
